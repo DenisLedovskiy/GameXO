@@ -1,14 +1,14 @@
 //
-//  GameEndedState.swift
+//  GameEndedStateCommand.swift
 //  XO-game
 //
-//  Created by Денис Ледовский on 26.03.2022.
+//  Created by Денис Ледовский on 29.03.2022.
 //  Copyright © 2022 plasmon. All rights reserved.
 //
 
 import Foundation
 
-public class GameEndedState: GameState {
+public class GameEndedStateCommand: GameState {
 
     public var isCompleted = false
     public let winner: Player?

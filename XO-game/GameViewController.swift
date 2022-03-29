@@ -16,6 +16,7 @@ class GameViewController: UIViewController {
     @IBOutlet var winnerLabel: UILabel!
     @IBOutlet var restartButton: UIButton!
 
+    let gameCommandInvoker = GameCommandInvoker()
     var gameMode: GameMode?
     var playersStates: [Player: InputState] = [:]
     private let gameboard = Gameboard()
@@ -63,17 +64,31 @@ class GameViewController: UIViewController {
 
     func goToFirstState() {
 
-        switch self.gameMode {
-        case .player:
-            goToFirstStatePlayer()
-        case .bot:
-            goToFirstStateBot()
-        case .none:
-            print("Не выбран режим")
-        }
+//        switch self.gameMode {
+//        case .player:
+//            goToFirstStatePlayer()
+//        case .bot:
+//            goToFirstStateBot()
+//        case .none:
+//            print("Не выбран режим")
+//        }
+        
+        playersStates[Player.first] = PlayerInputStateCommand(player: .first,
+                                                              gameViewController: self,
+                                                              gameboard: gameboard,
+                                                              gameboardView: gameboardView,
+                                                              gameCommandInvoker: gameCommandInvoker)
+
+        playersStates[Player.second] = PlayerInputStateCommand(player: .second,
+                                                               gameViewController: self,
+                                                               gameboard: gameboard,
+                                                               gameboardView: gameboardView,
+                                                               gameCommandInvoker: gameCommandInvoker)
+
     }
 
     func startNewGame() {
+        gameCommandInvoker.clear()
         gameboardView.clear()
         gameboard.clear()
         currentState = playersStates[.first]
@@ -88,33 +103,64 @@ class GameViewController: UIViewController {
 
     }
 
-    private func goToNextState() {
+//     func goToNextState() {
+//
+//           if let winner = referee.determineWinner() {
+//               currentState = GameEndedState(winner: winner, gameViewController: self)
+//               return
+//           }
+//
+//
+//        if let playerInputState = currentState as? InputState {
+//            currentState = playersStates[playerInputState.player.next]
+//            currentState.isCompleted = false
+//            if currentState is ComputerInputState {
+//                gameboardView.onSelectPosition = nil
+//                currentState.addMark(at: nil)
+//                if currentState.isCompleted {
+//                    goToNextState()
+//                }
+//            } else {
+//                gameboardView.onSelectPosition = { [weak self] position in
+//                    guard let self = self else { return }
+//                    self.currentState.addMark(at: position)
+//                    if self.currentState.isCompleted {
+//                        self.goToNextState()
+//                    }
+//                }
+//            }
+//        }
+//    }
 
-           if let winner = referee.determineWinner() {
-               currentState = GameEndedState(winner: winner, gameViewController: self)
-               return
-           }
+    func goToNextState() {
 
-
-        if let playerInputState = currentState as? InputState {
-            currentState = playersStates[playerInputState.player.next]
-            currentState.isCompleted = false
-            if currentState is ComputerInputState {
-                gameboardView.onSelectPosition = nil
-                currentState.addMark(at: nil)
-                if currentState.isCompleted {
-                    goToNextState()
-                }
-            } else {
-                gameboardView.onSelectPosition = { [weak self] position in
-                    guard let self = self else { return }
-                    self.currentState.addMark(at: position)
-                    if self.currentState.isCompleted {
-                        self.goToNextState()
-                    }
-                }
-            }
-        }
+        if let currentInputState = currentState as? InputState {
+                   switch currentInputState.player {
+                   case .first:
+                       currentState = playersStates[currentInputState.player.next]
+                       currentState.isCompleted = false
+                       gameboardView.onSelectPosition = { [weak self] position in
+                           guard let self = self else { return }
+                           self.currentState.addMark(at: position)
+                           if self.currentState.isCompleted {
+                               self.goToNextState()
+                           }
+                       }
+                   case .second:
+                       if currentState.isCompleted {
+                           gameboardView.onSelectPosition = nil
+                           let nextState = DisplayStepsState(gameViewController: self,
+                                                             gameCommandInvoker: gameCommandInvoker)
+                           nextState.onCommandsDisplayed = { [weak self] isDisplayed in
+                               if isDisplayed {
+                                   let winner = self?.referee.determineWinner()
+                                   self?.currentState = GameEndedState(winner: winner, gameViewController: self!)
+                               }
+                           }
+                           currentState = nextState
+                       }
+                   }
+               }
     }
 }
 
